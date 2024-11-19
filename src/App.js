@@ -5,7 +5,9 @@ import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 
 const App = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('currentUser') !== null;
+  });
 
   const handleLogin = () => {
     setIsAuthenticated(true);
@@ -13,35 +15,23 @@ const App = () => {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    localStorage.removeItem('currentUser'); // Hapus data login
   };
 
   return (
     <Router>
       <Routes>
-        {/* Route untuk halaman Login */}
         <Route
           path="/"
-          element={
-            !isAuthenticated ? (
-              <Login onLogin={handleLogin} />
-            ) : (
-              <Navigate to="/dashboard" replace />
-            )
-          }
+          element={!isAuthenticated ? <Login onLogin={handleLogin} /> : <Navigate to="/dashboard" />}
         />
-        {/* Route untuk halaman Register */}
         <Route
           path="/register"
-          element={
-            !isAuthenticated ? <Register /> : <Navigate to="/dashboard" replace />
-          }
+          element={!isAuthenticated ? <Register onLogin={handleLogin} /> : <Navigate to="/dashboard" />}
         />
-        {/* Route untuk halaman Dashboard */}
         <Route
           path="/dashboard/*"
-          element={
-            isAuthenticated ? <Dashboard onLogout={handleLogout} /> : <Navigate to="/" replace />
-          }
+          element={isAuthenticated ? <Dashboard onLogout={handleLogout} /> : <Navigate to="/" />}
         />
       </Routes>
     </Router>

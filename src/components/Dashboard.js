@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import BagianDivisi from './BagianDivisi';
 import Pegawai from './Pegawai';
 import SuratMasuk from './SuratMasuk';
@@ -7,6 +7,11 @@ import SuratKeluar from './SuratKeluar';
 import SKTugasPersonel from './SKTugasPersonel';
 
 const Dashboard = ({ onLogout }) => {
+  const location = useLocation(); // Mendapatkan URL aktif
+
+  // Fungsi untuk menentukan apakah menu aktif
+  const isActive = (path) => location.pathname === path;
+
   return (
     <div>
       {/* Navbar Atas */}
@@ -49,22 +54,52 @@ const Dashboard = ({ onLogout }) => {
         <nav className="bg-dark text-white p-3 vh-100" style={{ width: '250px' }}>
           <ul className="nav flex-column">
             <li className="nav-item">
-              <Link to="/dashboard" className="nav-link text-white">Beranda</Link>
+              <Link
+                to="/dashboard"
+                className={`nav-link ${isActive('/dashboard') ? 'active bg-primary text-white' : 'text-white'}`}
+              >
+                Beranda
+              </Link>
             </li>
             <li className="nav-item">
-              <Link to="/dashboard/bagian-divisi" className="nav-link text-white">Bagian/Divisi</Link>
+              <Link
+                to="/dashboard/bagian-divisi"
+                className={`nav-link ${isActive('/dashboard/bagian-divisi') ? 'active bg-primary text-white' : 'text-white'}`}
+              >
+                Bagian/Divisi
+              </Link>
             </li>
             <li className="nav-item">
-              <Link to="/dashboard/pegawai" className="nav-link text-white">Pegawai</Link>
+              <Link
+                to="/dashboard/pegawai"
+                className={`nav-link ${isActive('/dashboard/pegawai') ? 'active bg-primary text-white' : 'text-white'}`}
+              >
+                Pegawai
+              </Link>
             </li>
             <li className="nav-item">
-              <Link to="/dashboard/surat-masuk" className="nav-link text-white">Surat Masuk</Link>
+              <Link
+                to="/dashboard/surat-masuk"
+                className={`nav-link ${isActive('/dashboard/surat-masuk') ? 'active bg-primary text-white' : 'text-white'}`}
+              >
+                Surat Masuk
+              </Link>
             </li>
             <li className="nav-item">
-              <Link to="/dashboard/surat-keluar" className="nav-link text-white">Surat Keluar</Link>
+              <Link
+                to="/dashboard/surat-keluar"
+                className={`nav-link ${isActive('/dashboard/surat-keluar') ? 'active bg-primary text-white' : 'text-white'}`}
+              >
+                Surat Keluar
+              </Link>
             </li>
             <li className="nav-item">
-              <Link to="/dashboard/sk-tugas-personel" className="nav-link text-white">SK Tugas Personel</Link>
+              <Link
+                to="/dashboard/sk-tugas-personel"
+                className={`nav-link ${isActive('/dashboard/sk-tugas-personel') ? 'active bg-primary text-white' : 'text-white'}`}
+              >
+                SK Tugas Personel
+              </Link>
             </li>
           </ul>
         </nav>
@@ -78,7 +113,6 @@ const Dashboard = ({ onLogout }) => {
             <Route path="surat-masuk" element={<SuratMasuk />} />
             <Route path="surat-keluar" element={<SuratKeluar />} />
             <Route path="sk-tugas-personel" element={<SKTugasPersonel />} />
-            {/* Halaman Akun Anda */}
             <Route path="account" element={<h1>Akun Anda</h1>} />
           </Routes>
         </div>
