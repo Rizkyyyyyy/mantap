@@ -5,6 +5,7 @@ import Pegawai from './Pegawai';
 import SuratMasuk from './SuratMasuk';
 import SuratKeluar from './SuratKeluar';
 import SKTugasPersonel from './SKTugasPersonel';
+import HistoriPegawai from './HistoriPegawai'; // Import HistoriPegawai
 
 const Dashboard = ({ onLogout }) => {
   const location = useLocation(); // Mendapatkan URL aktif
@@ -79,6 +80,14 @@ const Dashboard = ({ onLogout }) => {
             </li>
             <li className="nav-item">
               <Link
+                to="/dashboard/histori-pegawai" // Link ke Histori Pegawai
+                className={`nav-link ${isActive('/dashboard/histori-pegawai') ? 'active bg-primary text-white' : 'text-white'}`}
+              >
+                Histori Pegawai
+              </Link>
+            </li>
+            <li className="nav-item">
+              <Link
                 to="/dashboard/surat-masuk"
                 className={`nav-link ${isActive('/dashboard/surat-masuk') ? 'active bg-primary text-white' : 'text-white'}`}
               >
@@ -113,6 +122,7 @@ const Dashboard = ({ onLogout }) => {
             <Route path="surat-masuk" element={<SuratMasuk />} />
             <Route path="surat-keluar" element={<SuratKeluar />} />
             <Route path="sk-tugas-personel" element={<SKTugasPersonel />} />
+            <Route path="histori-pegawai" element={<HistoriPegawai />} /> {/* Route untuk Histori Pegawai */}
             <Route path="account" element={<h1>Akun Anda</h1>} />
           </Routes>
         </div>

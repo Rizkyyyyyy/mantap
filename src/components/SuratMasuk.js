@@ -5,7 +5,7 @@ const SuratMasuk = () => {
     {
       kode: '001',
       tanggal: '2024-01-01',
-      asalSurat: 'PT ABC',
+      asalSurat: 'Polda Jawa Tengah',
       nrpPegawai: '123456',
       softfile: { name: 'contoh.pdf', url: null },
       jenisSurat: 'Biasa',

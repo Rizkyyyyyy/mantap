@@ -6,9 +6,9 @@ const SuratKeluar = () => {
       kode: '001',
       tanggal: '2024-01-01',
       nrpPegawai: '123456',
-      dikirimKepada: 'PT XYZ',
+      dikirimKepada: 'Polres Jepara',
       softfile: { name: 'contoh.pdf', url: null },
-      jenisSurat: 'Biasa',
+      jenisSurat: 'Rahasia',
     },
   ]);
 

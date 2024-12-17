@@ -3,9 +3,9 @@ import React, { useState } from 'react';
 const BagianDivisi = () => {
   // State untuk menyimpan data bagian/divisi
   const [data, setData] = useState([
-    { kode: '001', nama: 'Administrasi', tanggal: '2024-01-01', alamat: 'Jl. Raya No. 1' },
-    { kode: '002', nama: 'Keuangan', tanggal: '2024-01-02', alamat: 'Jl. Merdeka No. 2' },
-    { kode: '003', nama: 'IT Support', tanggal: '2024-01-03', alamat: 'Jl. Teknologi No. 3' },
+    { kode: '001', nama: 'Polantas', tanggal: '2024-01-01', alamat: 'Jl. Raya No. 1' },
+    { kode: '002', nama: 'Sabhara', tanggal: '2024-01-02', alamat: 'Jl. Merdeka No. 2' },
+    { kode: '003', nama: 'Brimob', tanggal: '2024-01-03', alamat: 'Jl. Teknologi No. 3' },
   ]);
 
   // State untuk form input

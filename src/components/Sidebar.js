@@ -22,6 +22,10 @@ const Sidebar = () => {
         </li>
         <li>
           <a href="#" className="nav-link text-white">
+            Histori Pegawai
+          </a>
+        <li>
+          <a href="#" className="nav-link text-white">
             Surat Masuk
           </a>
         </li>
@@ -34,6 +38,7 @@ const Sidebar = () => {
           <a href="#" className="nav-link text-white">
             SK Tugas Personel
           </a>
+        </li>
         </li>
       </ul>
     </div>
