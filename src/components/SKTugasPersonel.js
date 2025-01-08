@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Swal from 'sweetalert2';
 
 const SKTugasPersonel = () => {
   const [data, setData] = useState([
@@ -50,8 +51,10 @@ const SKTugasPersonel = () => {
       updatedData[editIndex] = formData;
       setData(updatedData);
       setEditIndex(null);
+      Swal.fire('Berhasil!', 'Data berhasil diperbarui.', 'success');
     } else {
       setData([...data, formData]);
+      Swal.fire('Berhasil!', 'Data berhasil ditambahkan.', 'success');
     }
     setFormData({
       kode: '',
@@ -64,8 +67,20 @@ const SKTugasPersonel = () => {
   };
 
   const handleDelete = (index) => {
-    const updatedData = data.filter((_, i) => i !== index);
-    setData(updatedData);
+    Swal.fire({
+      title: 'Apakah Anda yakin?',
+      text: 'Anda tidak dapat mengembalikan data yang dihapus!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, hapus!',
+      cancelButtonText: 'Batal',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const updatedData = data.filter((_, i) => i !== index);
+        setData(updatedData);
+        Swal.fire('Dihapus!', 'Data berhasil dihapus.', 'success');
+      }
+    });
   };
 
   const handleEdit = (index) => {
@@ -75,13 +90,7 @@ const SKTugasPersonel = () => {
   };
 
   const handleDownload = () => {
-    const headers = [
-      'Kode Transaksi',
-      'Tanggal SK',
-      'NRP Pegawai',
-      'Deskripsi Umum',
-      'Softfile',
-    ];
+    const headers = ['Kode Transaksi', 'Tanggal SK', 'NRP Pegawai', 'Deskripsi Umum', 'Softfile'];
     const rows = data.map((item) => [
       item.kode,
       item.tanggal,
@@ -108,10 +117,7 @@ const SKTugasPersonel = () => {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2>SK Tugas Personel</h2>
         <div>
-          <button
-            className="btn btn-outline-primary me-2"
-            onClick={handleDownload}
-          >
+          <button className="btn btn-outline-primary me-2" onClick={handleDownload}>
             Download report
           </button>
           <button
@@ -128,12 +134,11 @@ const SKTugasPersonel = () => {
               setEditIndex(null);
             }}
           >
-            {showForm ? 'Cancel' : '+ Add'}
+            {showForm ? 'Batal' : '+ Add'}
           </button>
         </div>
       </div>
 
-      {/* Form Add/Edit */}
       {showForm && (
         <form onSubmit={handleAdd} className="mb-4">
           <div className="row">
@@ -190,12 +195,11 @@ const SKTugasPersonel = () => {
             </div>
           </div>
           <button type="submit" className="btn btn-success">
-            {editIndex !== null ? 'Update' : 'Save'}
+            {editIndex !== null ? 'Perbarui' : 'Simpan'}
           </button>
         </form>
       )}
 
-      {/* Tabel Data */}
       <div className="table-responsive">
         <table className="table table-striped">
           <thead className="table-dark">
@@ -205,7 +209,7 @@ const SKTugasPersonel = () => {
               <th>NRP Pegawai</th>
               <th>Deskripsi Umum</th>
               <th>Softfile</th>
-              <th>Actions</th>
+              <th>Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -218,10 +222,10 @@ const SKTugasPersonel = () => {
                 <td>
                   {item.softfile?.url ? (
                     <a href={item.softfile.url} target="_blank" rel="noreferrer">
-                      View
+                      Lihat
                     </a>
                   ) : (
-                    'No File'
+                    'Tidak Ada File'
                   )}
                 </td>
                 <td>
@@ -235,7 +239,7 @@ const SKTugasPersonel = () => {
                     className="btn btn-danger btn-sm"
                     onClick={() => handleDelete(index)}
                   >
-                    Delete
+                    Hapus
                   </button>
                 </td>
               </tr>
@@ -243,7 +247,7 @@ const SKTugasPersonel = () => {
           </tbody>
         </table>
       </div>
-      <p className="text-end">Total: {data.length} and showing 1 page</p>
+      <p className="text-end">Total: {data.length} dan menampilkan 1 halaman</p>
     </div>
   );
 };

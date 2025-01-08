@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+
+const MySwal = withReactContent(Swal);
 
 const Pegawai = () => {
-  // State untuk menyimpan data pegawai
   const [data, setData] = useState([
     {
       nrp: '123456',
@@ -15,7 +18,6 @@ const Pegawai = () => {
     },
   ]);
 
-  // State untuk form input
   const [formData, setFormData] = useState({
     nrp: '',
     nama: '',
@@ -27,13 +29,10 @@ const Pegawai = () => {
     deskripsi: '',
   });
 
-  // State untuk menampilkan atau menyembunyikan form Add/Edit
   const [showForm, setShowForm] = useState(false);
-
-  // State untuk menentukan apakah dalam mode Edit
   const [editIndex, setEditIndex] = useState(null);
+  const [deleteIndex, setDeleteIndex] = useState(null);
 
-  // Fungsi untuk menangani perubahan input
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -42,19 +41,40 @@ const Pegawai = () => {
     });
   };
 
-  // Fungsi untuk menambahkan atau memperbarui data
   const handleAdd = (e) => {
     e.preventDefault();
+
+    if (editIndex === null && data.some((item) => item.nrp === formData.nrp)) {
+      MySwal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: 'NRP Pegawai sudah ada, gunakan NRP yang berbeda.',
+      });
+      return;
+    }
+
     if (editIndex !== null) {
-      // Edit data
       const updatedData = [...data];
       updatedData[editIndex] = formData;
       setData(updatedData);
+
+      MySwal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: 'Data pegawai berhasil diperbarui!',
+      });
+
       setEditIndex(null);
     } else {
-      // Tambah data baru
       setData([...data, formData]);
+
+      MySwal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: 'Data pegawai berhasil ditambahkan!',
+      });
     }
+
     setFormData({
       nrp: '',
       nama: '',
@@ -68,20 +88,32 @@ const Pegawai = () => {
     setShowForm(false);
   };
 
-  // Fungsi untuk menghapus data
   const handleDelete = (index) => {
-    const updatedData = data.filter((_, i) => i !== index);
-    setData(updatedData);
+    MySwal.fire({
+      title: 'Apakah Anda yakin?',
+      text: 'Data pegawai ini akan dihapus secara permanen!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Ya, hapus!',
+      cancelButtonText: 'Batal',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const updatedData = data.filter((_, i) => i !== index);
+        setData(updatedData);
+
+        MySwal.fire('Dihapus!', 'Data pegawai berhasil dihapus.', 'success');
+      }
+    });
   };
 
-  // Fungsi untuk mengedit data
   const handleEdit = (index) => {
     setEditIndex(index);
     setFormData(data[index]);
     setShowForm(true);
   };
 
-  // Fungsi untuk mendownload data sebagai CSV
   const handleDownload = () => {
     const headers = [
       'NRP Pegawai',
@@ -122,10 +154,7 @@ const Pegawai = () => {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2>Pegawai</h2>
         <div>
-          <button
-            className="btn btn-outline-primary me-2"
-            onClick={handleDownload}
-          >
+          <button className="btn btn-outline-primary me-2" onClick={handleDownload}>
             Download report
           </button>
           <button
@@ -163,6 +192,7 @@ const Pegawai = () => {
                 value={formData.nrp}
                 onChange={handleChange}
                 required
+                disabled={editIndex !== null}
               />
             </div>
             <div className="col-md-3 mb-3">
@@ -249,9 +279,9 @@ const Pegawai = () => {
         </form>
       )}
 
-      {/* Tabel Data */}
+      {/* Table Data */}
       <div className="table-responsive">
-        <table className="table table-striped">
+        <table className="table table-striped table-hover">
           <thead className="table-dark">
             <tr>
               <th>NRP Pegawai</th>
@@ -277,10 +307,7 @@ const Pegawai = () => {
                 <td>{item.jabatan}</td>
                 <td>{item.deskripsi}</td>
                 <td>
-                  <button
-                    className="btn btn-warning btn-sm me-2"
-                    onClick={() => handleEdit(index)}
-                  >
+                  <button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(index)}>
                     Edit
                   </button>
                   <button
@@ -295,7 +322,6 @@ const Pegawai = () => {
           </tbody>
         </table>
       </div>
-      <p className="text-end">Total: {data.length} and showing 1 page</p>
     </div>
   );
 };

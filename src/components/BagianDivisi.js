@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+
+const MySwal = withReactContent(Swal);
 
 const BagianDivisi = () => {
-  // State untuk menyimpan data bagian/divisi
   const [data, setData] = useState([
     { kode: '001', nama: 'Polantas', tanggal: '2024-01-01', alamat: 'Jl. Raya No. 1' },
     { kode: '002', nama: 'Sabhara', tanggal: '2024-01-02', alamat: 'Jl. Merdeka No. 2' },
     { kode: '003', nama: 'Brimob', tanggal: '2024-01-03', alamat: 'Jl. Teknologi No. 3' },
   ]);
 
-  // State untuk form input
   const [formData, setFormData] = useState({
     kode: '',
     nama: '',
@@ -16,10 +18,7 @@ const BagianDivisi = () => {
     alamat: '',
   });
 
-  // State untuk menampilkan atau menyembunyikan form Add/Edit
   const [showForm, setShowForm] = useState(false);
-
-  // State untuk menentukan apakah dalam mode Edit
   const [editIndex, setEditIndex] = useState(null);
 
   // Fungsi untuk menangani perubahan input
@@ -34,24 +33,61 @@ const BagianDivisi = () => {
   // Fungsi untuk menambahkan atau memperbarui data
   const handleAdd = (e) => {
     e.preventDefault();
+
+    if (editIndex === null && data.some((item) => item.kode === formData.kode)) {
+      MySwal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: 'Kode Bagian sudah ada, gunakan kode yang berbeda.',
+      });
+      return;
+    }
+
     if (editIndex !== null) {
-      // Edit data
       const updatedData = [...data];
       updatedData[editIndex] = formData;
       setData(updatedData);
+
+      MySwal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: 'Data berhasil diperbarui!',
+      });
+
       setEditIndex(null);
     } else {
-      // Tambah data baru
       setData([...data, formData]);
+
+      MySwal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: 'Data berhasil ditambahkan!',
+      });
     }
+
     setFormData({ kode: '', nama: '', tanggal: '', alamat: '' });
     setShowForm(false);
   };
 
   // Fungsi untuk menghapus data
   const handleDelete = (index) => {
-    const updatedData = data.filter((_, i) => i !== index);
-    setData(updatedData);
+    MySwal.fire({
+      title: 'Apakah Anda yakin?',
+      text: 'Data ini akan dihapus secara permanen!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Ya, hapus!',
+      cancelButtonText: 'Batal',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const updatedData = data.filter((_, i) => i !== index);
+        setData(updatedData);
+
+        MySwal.fire('Dihapus!', 'Data berhasil dihapus.', 'success');
+      }
+    });
   };
 
   // Fungsi untuk mengedit data
@@ -71,12 +107,10 @@ const BagianDivisi = () => {
       item.alamat,
     ]);
 
-    // Konversi data menjadi CSV
     const csvContent =
       'data:text/csv;charset=utf-8,' +
       [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
 
-    // Buat link untuk download
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
@@ -123,6 +157,7 @@ const BagianDivisi = () => {
                 value={formData.kode}
                 onChange={handleChange}
                 required
+                disabled={editIndex !== null}
               />
             </div>
             <div className="col-md-3 mb-3">
@@ -166,7 +201,7 @@ const BagianDivisi = () => {
 
       {/* Tabel Data */}
       <div className="table-responsive">
-        <table className="table table-striped">
+        <table className="table table-striped table-hover">
           <thead className="table-dark">
             <tr>
               <th>Kode Bagian</th>
@@ -202,7 +237,6 @@ const BagianDivisi = () => {
           </tbody>
         </table>
       </div>
-      <p className="text-end">Total: {data.length} and showing 1 page</p>
     </div>
   );
 };

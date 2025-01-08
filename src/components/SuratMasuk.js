@@ -1,4 +1,8 @@
 import React, { useState } from 'react';
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+
+const MySwal = withReactContent(Swal);
 
 const SuratMasuk = () => {
   const [data, setData] = useState([
@@ -52,8 +56,20 @@ const SuratMasuk = () => {
       updatedData[editIndex] = formData;
       setData(updatedData);
       setEditIndex(null);
+      MySwal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: 'Data berhasil diperbarui!',
+        confirmButtonText: 'OK',
+      });
     } else {
       setData([...data, formData]);
+      MySwal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: 'Data berhasil ditambahkan!',
+        confirmButtonText: 'OK',
+      });
     }
     setFormData({
       kode: '',
@@ -67,8 +83,25 @@ const SuratMasuk = () => {
   };
 
   const handleDelete = (index) => {
-    const updatedData = data.filter((_, i) => i !== index);
-    setData(updatedData);
+    MySwal.fire({
+      title: 'Apakah Anda yakin?',
+      text: 'Data ini akan dihapus dan tidak bisa dikembalikan!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, hapus!',
+      cancelButtonText: 'Batal',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const updatedData = data.filter((_, i) => i !== index);
+        setData(updatedData);
+        MySwal.fire({
+          icon: 'success',
+          title: 'Berhasil',
+          text: 'Data berhasil dihapus!',
+          confirmButtonText: 'OK',
+        });
+      }
+    });
   };
 
   const handleEdit = (index) => {
@@ -139,7 +172,7 @@ const SuratMasuk = () => {
         </div>
       </div>
 
-      {/* Form Add/Edit */}
+      {/* Form Tambah/Edit */}
       {showForm && (
         <form onSubmit={handleAdd} className="mb-4">
           <div className="row">
@@ -263,7 +296,7 @@ const SuratMasuk = () => {
           </tbody>
         </table>
       </div>
-      <p className="text-end">Total: {data.length} and showing 1 page</p>
+      <p className="text-end">Total: {data.length} dan hanya 1 halaman ditampilkan</p>
     </div>
   );
 };

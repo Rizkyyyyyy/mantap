@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Swal from 'sweetalert2';
 
 const SuratKeluar = () => {
   const [data, setData] = useState([
@@ -52,8 +53,12 @@ const SuratKeluar = () => {
       updatedData[editIndex] = formData;
       setData(updatedData);
       setEditIndex(null);
+
+      Swal.fire('Berhasil!', 'Data berhasil diperbarui!', 'success');
     } else {
       setData([...data, formData]);
+
+      Swal.fire('Berhasil!', 'Data berhasil ditambahkan!', 'success');
     }
     setFormData({
       kode: '',
@@ -67,8 +72,20 @@ const SuratKeluar = () => {
   };
 
   const handleDelete = (index) => {
-    const updatedData = data.filter((_, i) => i !== index);
-    setData(updatedData);
+    Swal.fire({
+      title: 'Apakah Anda yakin?',
+      text: 'Data ini akan dihapus!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, hapus!',
+      cancelButtonText: 'Batal',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const updatedData = data.filter((_, i) => i !== index);
+        setData(updatedData);
+        Swal.fire('Terhapus!', 'Data berhasil dihapus.', 'success');
+      }
+    });
   };
 
   const handleEdit = (index) => {
@@ -106,6 +123,8 @@ const SuratKeluar = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    Swal.fire('Berhasil!', 'Laporan berhasil didownload.', 'success');
   };
 
   return (
@@ -139,7 +158,7 @@ const SuratKeluar = () => {
         </div>
       </div>
 
-      {/* Form Add/Edit */}
+      {/* Form Tambah/Edit */}
       {showForm && (
         <form onSubmit={handleAdd} className="mb-4">
           <div className="row">
@@ -191,7 +210,7 @@ const SuratKeluar = () => {
                 type="file"
                 className="form-control"
                 onChange={handleFileChange}
-                required={!editIndex}
+                required={!editIndex} // File wajib diunggah hanya untuk tambah data
               />
             </div>
             <div className="col-md-2 mb-3">
@@ -263,7 +282,7 @@ const SuratKeluar = () => {
           </tbody>
         </table>
       </div>
-      <p className="text-end">Total: {data.length} and showing 1 page</p>
+      <p className="text-end">Total: {data.length} dan hanya 1 halaman ditampilkan</p>
     </div>
   );
 };
