@@ -6,7 +6,7 @@ import withReactContent from 'sweetalert2-react-content';
 const MySwal = withReactContent(Swal);
 
 const getHeaderAuth = () => ({
-  Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+  'Authorization': `Bearer ${localStorage.getItem('token')}`,
   'Content-Type': 'application/json',
 });
 
@@ -27,10 +27,24 @@ const Suratkeluar = () => {
 
   useEffect(() => {
     const storedData = localStorage.getItem('suratkeluarData');
-    if (storedData) {
-      setData(JSON.parse(storedData));
-    } else {
-      fetch('https://arsipdigital-v2.my.id/api/admin/surat_keluar.php', {
+    // if (storedData) {
+    //   setData(JSON.parse(storedData));
+    // } else {
+    //   fetch('https://arsipdigital-v2.my.id/api/admin/surat_keluar.php', {
+    //     headers: getHeaderAuth(),
+    //   })
+    //     .then((response) => response.json())
+    //     .then((result) => {
+    //       const dataResult = Array.isArray(result) ? result : result.data || [];
+    //       setData(dataResult);
+    //       localStorage.setItem('suratkeluarData', JSON.stringify(dataResult));
+    //     })
+    //     .catch((error) => {
+    //       console.error('Error fetching data:', error);
+    //       setError('Failed to fetch data');
+    //     });
+    // }
+    fetch('https://arsipdigital-v2.my.id/api/admin/surat_keluar.php', {
         headers: getHeaderAuth(),
       })
         .then((response) => response.json())
@@ -43,7 +57,6 @@ const Suratkeluar = () => {
           console.error('Error fetching data:', error);
           setError('Failed to fetch data');
         });
-    }
   }, []);
 
   const handleChange = (e) => {
@@ -316,7 +329,7 @@ const Suratkeluar = () => {
                     <td>{index + 1}</td>
                     <td>{item.kode_transaksi}</td>
                     <td>{item.tanggal_surat_keluar}</td>
-                    <td>{item.asal_surat}</td>
+                    <td>{item.dikirim_kepada}</td>
                     <td>{item.nrp_pegawai}</td>
                     <td>
                       <Badge bg={getBadgeVariant(item.jenis_surat)}>
@@ -326,13 +339,14 @@ const Suratkeluar = () => {
                     <td>
                       {item.softfile && (
                         <a
-                          href={item.softfile.url}
+                          href={item.softfile}
                           target="_blank"
                           rel="noreferrer"
                           className="text-decoration-none"
                         >
-                          <i className="bi bi-file-earmark me-2"></i>
-                          {item.softfile.name}
+                          <i className="bi bi-file-earmark me-2">
+                            {/* {item.softfile} */} Download
+                          </i>
                         </a>
                       )}
                     </td>

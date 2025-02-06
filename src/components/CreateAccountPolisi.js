@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, { useState } from 'react';
 import Swal from 'sweetalert2';
 
@@ -6,7 +7,7 @@ const CreateAccountPolisi = () => {
     nama: '',
     email: '',
     password: '',
-    role: 'user', // default role user
+    role: 'User', // default role user
   });
   const [message, setMessage] = useState('');
 
@@ -27,17 +28,22 @@ const CreateAccountPolisi = () => {
 
     try {
       // Kirim data ke API
-      const response = await fetch('http://192.168.1.12/arsipdigital_v2/api/admin/create_account.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ nama, email, password, role }),
-      });
+      const response = await axios.post(
+        'https://arsipdigital-v2.my.id/api/admin/create_account.php',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
 
-      const result = await response.json();
+      const result = await response.data;
 
-      if (response.ok) {
+      console.log(result)
+
+      if (result.status === 'success') {
         Swal.fire({
           title: 'Berhasil!',
           text: 'Akun polisi berhasil dibuat!',
@@ -47,7 +53,7 @@ const CreateAccountPolisi = () => {
 
         // Reset form setelah berhasil
         setFormData({ nama: '', email: '', password: '', role: 'user' });
-      } else {
+      } if (result.status === 'error') {
         // Menangani jika ada error di server
         Swal.fire({
           title: 'Error!',
@@ -60,7 +66,7 @@ const CreateAccountPolisi = () => {
       // Menangani jika ada error saat melakukan request
       Swal.fire({
         title: 'Error!',
-        text: 'Gagal menghubungi server.',
+        text: error.response.data.message,
         icon: 'error',
         confirmButtonText: 'OK',
       });

@@ -7,7 +7,7 @@ const ActivityLog = () => {
   const [error, setError] = useState('');
 
   // API URL
-  const apiUrl = 'http://192.168.1.12/arsipdigital_v2/api/admin/activitylog.php';
+  const apiUrl = 'https://arsipdigital-v2.my.id/api/admin/activitylog.php';
 
   useEffect(() => {
     const fetchLogs = async () => {
