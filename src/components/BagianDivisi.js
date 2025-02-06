@@ -1,28 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
+import axios from 'axios';
 
 const MySwal = withReactContent(Swal);
 
 const BagianDivisi = () => {
-  const [data, setData] = useState([
-    { kode: '001', nama: 'Polantas', tanggal: '2024-01-01', alamat: 'Jl. Raya No. 1' },
-    { kode: '002', nama: 'Sabhara', tanggal: '2024-01-02', alamat: 'Jl. Merdeka No. 2' },
-    { kode: '003', nama: 'Brimob', tanggal: '2024-01-03', alamat: 'Jl. Teknologi No. 3' },
-  ]);
-
+  const [dataDivisi, setDataDivisi] = useState([]);
   const [formData, setFormData] = useState({
-    kode: '',
-    nama: '',
-    tanggal: '',
-    alamat: '',
+    id: null,
+    kode_divisi: '',
+    nama_divisi: '',
+    alamat_kantor: '',
   });
 
-  const [showForm, setShowForm] = useState(false);
-  const [editIndex, setEditIndex] = useState(null);
+  const [tampilkanForm, setTampilkanForm] = useState(false);
+  const [indeksEdit, setIndeksEdit] = useState(null);
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5); // You can adjust this value as needed
 
-  // Fungsi untuk menangani perubahan input
-  const handleChange = (e) => {
+  const apiUrl = 'https://arsipdigital-v2.my.id/api/admin/divisi.php';
+
+  const getHeaderAuth = () => {
+    const token = localStorage.getItem('token');
+    return {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    };
+  };
+
+  useEffect(() => {
+    axios.get(apiUrl, getHeaderAuth())
+      .then((res) => {
+        const divisi = res.data.data.map(item => ({
+          id: item.id,
+          kode_divisi: item.kode_divisi,
+          nama_divisi: item.nama_divisi,
+          alamat_kantor: item.alamat_kantor,
+        }));
+        setDataDivisi(divisi);
+      })
+      .catch((err) => {
+        console.error('Gagal mengambil data', err);
+        MySwal.fire({
+          icon: 'error',
+          title: 'Gagal!',
+          text: err.response?.data?.pesan || 'Gagal memuat data divisi',
+        });
+      });
+  }, []);
+
+  // Handle perubahan input form
+  const handlePerubahanInput = (e) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
@@ -30,213 +62,257 @@ const BagianDivisi = () => {
     });
   };
 
-  // Fungsi untuk menambahkan atau memperbarui data
-  const handleAdd = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-
-    if (editIndex === null && data.some((item) => item.kode === formData.kode)) {
+    if (!localStorage.getItem('token')) {
       MySwal.fire({
         icon: 'error',
-        title: 'Oops...',
-        text: 'Kode Bagian sudah ada, gunakan kode yang berbeda.',
+        title: 'Akses Ditolak!',
+        text: 'Anda harus login terlebih dahulu',
       });
       return;
     }
 
-    if (editIndex !== null) {
-      const updatedData = [...data];
-      updatedData[editIndex] = formData;
-      setData(updatedData);
-
+    if (indeksEdit === null && Array.isArray(dataDivisi) && dataDivisi.some((item) => item.kode_divisi === formData.kode_divisi)) {
       MySwal.fire({
-        icon: 'success',
-        title: 'Berhasil!',
-        text: 'Data berhasil diperbarui!',
+        icon: 'error',
+        title: 'Kode Sudah Ada!',
+        text: 'Kode divisi ini sudah digunakan, silakan gunakan kode lain',
       });
-
-      setEditIndex(null);
-    } else {
-      setData([...data, formData]);
-
-      MySwal.fire({
-        icon: 'success',
-        title: 'Berhasil!',
-        text: 'Data berhasil ditambahkan!',
-      });
+      return;
     }
 
-    setFormData({ kode: '', nama: '', tanggal: '', alamat: '' });
-    setShowForm(false);
+    const request = indeksEdit !== null
+      ? axios.put(apiUrl, formData, getHeaderAuth())
+      : axios.post(apiUrl, formData, getHeaderAuth());
+
+    request.then((res) => {
+      const updatedData = res.data;
+      MySwal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: `Data berhasil ${indeksEdit !== null ? 'diperbarui' : 'ditambahkan'}!`,
+      });
+
+      axios.get(apiUrl, getHeaderAuth())
+        .then((res) => {
+          const divisi = res.data.data.map(item => ({
+            id: item.id,
+            kode_divisi: item.kode_divisi,
+            nama_divisi: item.nama_divisi,
+            alamat_kantor: item.alamat_kantor,
+          }));
+          setDataDivisi(divisi);
+        })
+        .catch((err) => {
+          console.error('Gagal mengambil data', err);
+          MySwal.fire({
+            icon: 'error',
+            title: 'Gagal!',
+            text: err.response?.data?.pesan || 'Gagal memuat data divisi',
+          });
+        });
+
+      resetForm();
+    })
+    .catch((err) => {
+      console.error('Gagal menyimpan data', err);
+      MySwal.fire({
+        icon: 'error',
+        title: 'Gagal!',
+        text: err.response?.data?.pesan || 'Terjadi kesalahan saat menyimpan data',
+      });
+    });
   };
 
-  // Fungsi untuk menghapus data
-  const handleDelete = (index) => {
+  const handleHapus = (indeks) => {
+    const idYangDihapus = dataDivisi[indeks].id;
+
     MySwal.fire({
-      title: 'Apakah Anda yakin?',
-      text: 'Data ini akan dihapus secara permanen!',
+      title: 'Konfirmasi Hapus',
+      text: 'Apakah Anda yakin ingin menghapus data ini?',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#3085d6',
       cancelButtonColor: '#d33',
-      confirmButtonText: 'Ya, hapus!',
-      cancelButtonText: 'Batal',
-    }).then((result) => {
-      if (result.isConfirmed) {
-        const updatedData = data.filter((_, i) => i !== index);
-        setData(updatedData);
-
-        MySwal.fire('Dihapus!', 'Data berhasil dihapus.', 'success');
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal'
+    }).then((hasil) => {
+      if (hasil.isConfirmed) {
+        axios.delete(`${apiUrl}?id=${idYangDihapus}`, getHeaderAuth())
+          .then(() => {
+            const dataTerbaru = dataDivisi.filter((_, i) => i !== indeks);
+            setDataDivisi(dataTerbaru);
+            MySwal.fire('Terhapus!', 'Data berhasil dihapus.', 'success');
+          })
+          .catch((err) => {
+            console.error('Gagal menghapus data', err);
+            MySwal.fire({
+              icon: 'error',
+              title: 'Gagal!',
+              text: err.response?.data?.pesan || 'Gagal menghapus data',
+            });
+          });
       }
     });
   };
 
-  // Fungsi untuk mengedit data
-  const handleEdit = (index) => {
-    setEditIndex(index);
-    setFormData(data[index]);
-    setShowForm(true);
+  const handleEdit = (indeks) => {
+    setIndeksEdit(indeks);
+    setFormData(dataDivisi[indeks]);
+    setTampilkanForm(true);
   };
 
-  // Fungsi untuk mendownload data sebagai CSV
-  const handleDownload = () => {
-    const headers = ['Kode Bagian', 'Nama Bagian', 'Tanggal', 'Alamat Kantor'];
-    const rows = data.map((item) => [
-      item.kode,
-      item.nama,
-      item.tanggal,
-      item.alamat,
-    ]);
-
-    const csvContent =
-      'data:text/csv;charset=utf-8,' +
-      [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'Bagian_Divisi_Report.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const resetForm = () => {
+    setTampilkanForm(false);
+    setIndeksEdit(null);
+    setFormData({ id: null, kode_divisi: '', nama_divisi: '', alamat_kantor: '' });
   };
+
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentData = dataDivisi.slice(indexOfFirstItem, indexOfLastItem);
+
+  const pageNumbers = [];
+  for (let i = 1; i <= Math.ceil(dataDivisi.length / itemsPerPage); i++) {
+    pageNumbers.push(i);
+  }
 
   return (
     <div className="p-4 bg-light" style={{ borderRadius: '8px' }}>
+      {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>Bagian/Divisi</h2>
+        <h2>Manajemen Divisi</h2>
         <div>
           <button
-            className="btn btn-outline-primary me-2"
-            onClick={handleDownload}
-          >
-            Download report
-          </button>
-          <button
             className="btn btn-primary"
-            onClick={() => {
-              setShowForm(!showForm);
-              setFormData({ kode: '', nama: '', tanggal: '', alamat: '' });
-              setEditIndex(null);
-            }}
+            onClick={() => setTampilkanForm(!tampilkanForm)}
           >
-            {showForm ? 'Cancel' : '+ Add'}
+            {tampilkanForm ? (
+              <><i className="bi bi-x-circle me-2"></i>Batal</>
+            ) : (
+              <><i className="bi bi-plus-circle me-2"></i>Tambah</>
+            )}
           </button>
         </div>
       </div>
 
-      {/* Form Add/Edit */}
-      {showForm && (
-        <form onSubmit={handleAdd} className="mb-4">
-          <div className="row">
-            <div className="col-md-3 mb-3">
+      {/* Form Input */}
+      {tampilkanForm && (
+        <form onSubmit={handleSubmit} className="mb-4 shadow p-3 bg-white rounded">
+          <div className="row g-3 align-items-end">
+            <div className="col-md-3">
+              <label className="form-label">Kode Divisi</label>
               <input
                 type="text"
                 className="form-control"
-                name="kode"
-                placeholder="Kode Bagian"
-                value={formData.kode}
-                onChange={handleChange}
+                name="kode_divisi"
+                placeholder="DIV-001"
+                value={formData.kode_divisi}
+                onChange={handlePerubahanInput}
                 required
-                disabled={editIndex !== null}
+                disabled={indeksEdit !== null}
               />
             </div>
-            <div className="col-md-3 mb-3">
+
+            <div className="col-md-4">
+              <label className="form-label">Nama Divisi</label>
               <input
                 type="text"
                 className="form-control"
-                name="nama"
-                placeholder="Nama Bagian"
-                value={formData.nama}
-                onChange={handleChange}
+                name="nama_divisi"
+                placeholder="Contoh: Divisi IT"
+                value={formData.nama_divisi}
+                onChange={handlePerubahanInput}
                 required
               />
             </div>
-            <div className="col-md-3 mb-3">
-              <input
-                type="date"
-                className="form-control"
-                name="tanggal"
-                value={formData.tanggal}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="col-md-3 mb-3">
+
+            <div className="col-md-3">
+              <label className="form-label">Alamat Kantor</label>
               <input
                 type="text"
                 className="form-control"
-                name="alamat"
-                placeholder="Alamat Kantor"
-                value={formData.alamat}
-                onChange={handleChange}
+                name="alamat_kantor"
+                placeholder="Alamat lengkap"
+                value={formData.alamat_kantor}
+                onChange={handlePerubahanInput}
                 required
               />
+            </div>
+
+            <div className="col-md-2">
+              <button 
+                type="submit" 
+                className="btn btn-success w-100"
+              >
+                {indeksEdit !== null ? 'Perbarui' : 'Tambah'}
+              </button>
             </div>
           </div>
-          <button type="submit" className="btn btn-success">
-            {editIndex !== null ? 'Update' : 'Save'}
-          </button>
         </form>
       )}
 
       {/* Tabel Data */}
-      <div className="table-responsive">
-        <table className="table table-striped table-hover">
-          <thead className="table-dark">
-            <tr>
-              <th>Kode Bagian</th>
-              <th>Nama Bagian</th>
-              <th>Tanggal</th>
-              <th>Alamat Kantor</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((item, index) => (
-              <tr key={index}>
-                <td>{item.kode}</td>
-                <td>{item.nama}</td>
-                <td>{item.tanggal}</td>
-                <td>{item.alamat}</td>
+      <table className="table table-bordered table-striped table-hover">
+        <thead>
+          <tr className="bg-primary text-white">
+            <th>No</th>
+            <th>Kode Divisi</th>
+            <th>Nama Divisi</th>
+            <th>Alamat Kantor</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {currentData.length > 0 ? (
+            currentData.map((item, index) => (
+              <tr key={item.id}>
+                <td>{index + 1 + indexOfFirstItem}</td>
+                <td>{item.kode_divisi}</td>
+                <td>{item.nama_divisi}</td>
+                <td>{item.alamat_kantor}</td>
                 <td>
-                  <button
-                    className="btn btn-warning btn-sm me-2"
-                    onClick={() => handleEdit(index)}
+                  <button 
+                    className="btn btn-warning btn-sm me-2" 
+                    onClick={() => handleEdit(index)}  
                   >
                     Edit
                   </button>
-                  <button
-                    className="btn btn-danger btn-sm"
-                    onClick={() => handleDelete(index)}
+                  <button 
+                    className="btn btn-danger btn-sm" 
+                    onClick={() => handleHapus(index)}  
                   >
-                    Delete
+                    Hapus
                   </button>
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="5">Data tidak tersedia</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+
+      {/* Pagination Controls */}
+      <nav>
+        <ul className="pagination">
+          <li className="page-item" onClick={() => setCurrentPage(currentPage > 1 ? currentPage - 1 : currentPage)}>
+            <a className="page-link" href="#">Previous</a>
+          </li>
+          {pageNumbers.map(number => (
+            <li key={number} className={`page-item ${currentPage === number ? 'active' : ''}`}>
+              <a className="page-link" onClick={() => setCurrentPage(number)}>{number}</a>
+            </li>
+          ))}
+          <li className="page-item" onClick={() => setCurrentPage(currentPage < pageNumbers.length ? currentPage + 1 : currentPage)}>
+            <a className="page-link" href="#">Next</a>
+          </li>
+        </ul>
+      </nav>
     </div>
   );
 };

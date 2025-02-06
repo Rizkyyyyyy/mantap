@@ -4,7 +4,6 @@ import Swal from 'sweetalert2';
 const CreateAccountPolisi = () => {
   const [formData, setFormData] = useState({
     nama: '',
-    nrp: '',
     email: '',
     password: '',
     role: 'user', // default role user
@@ -16,42 +15,57 @@ const CreateAccountPolisi = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const { nama, nrp, email, password, role } = formData;
+    const { nama, email, password, role } = formData;
 
-    if (!nama || !nrp || !email || !password || !role) {
+    if (!nama || !email || !password || !role) {
       setMessage('Semua field harus diisi!');
       return;
     }
 
-    // Simpan akun ke localStorage (simulasi database)
-    const existingAccounts = JSON.parse(localStorage.getItem('polisiAccounts')) || [];
-    const isDuplicate = existingAccounts.some((account) => account.nrp === nrp || account.email === email);
+    try {
+      // Kirim data ke API
+      const response = await fetch('http://192.168.1.12/arsipdigital_v2/api/admin/create_account.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ nama, email, password, role }),
+      });
 
-    if (isDuplicate) {
+      const result = await response.json();
+
+      if (response.ok) {
+        Swal.fire({
+          title: 'Berhasil!',
+          text: 'Akun polisi berhasil dibuat!',
+          icon: 'success',
+          confirmButtonText: 'OK',
+        });
+
+        // Reset form setelah berhasil
+        setFormData({ nama: '', email: '', password: '', role: 'user' });
+      } else {
+        // Menangani jika ada error di server
+        Swal.fire({
+          title: 'Error!',
+          text: result.message || 'Terjadi kesalahan saat membuat akun.',
+          icon: 'error',
+          confirmButtonText: 'OK',
+        });
+      }
+    } catch (error) {
+      // Menangani jika ada error saat melakukan request
       Swal.fire({
         title: 'Error!',
-        text: 'NRP atau Email sudah digunakan!',
+        text: 'Gagal menghubungi server.',
         icon: 'error',
-        confirmButtonText: 'OK'
+        confirmButtonText: 'OK',
       });
-      return;
+      console.error('Error:', error);
     }
-
-    const newAccount = { nama, nrp, email, password, role };
-    existingAccounts.push(newAccount);
-    localStorage.setItem('polisiAccounts', JSON.stringify(existingAccounts));
-
-    Swal.fire({
-      title: 'Berhasil!',
-      text: 'Akun polisi berhasil dibuat!',
-      icon: 'success',
-      confirmButtonText: 'OK'
-    });
-
-    setFormData({ nama: '', nrp: '', email: '', password: '', role: 'user' });
   };
 
   return (
@@ -66,17 +80,6 @@ const CreateAccountPolisi = () => {
             className="form-control"
             name="nama"
             value={formData.nama}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div className="mb-3">
-          <label className="form-label">NRP</label>
-          <input
-            type="text"
-            className="form-control"
-            name="nrp"
-            value={formData.nrp}
             onChange={handleChange}
             required
           />

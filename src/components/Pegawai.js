@@ -1,326 +1,365 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 
 const MySwal = withReactContent(Swal);
 
 const Pegawai = () => {
-  const [data, setData] = useState([
-    {
-      nrp: '123456',
-      nama: 'John Doe',
-      email: 'johndoe@example.com',
-      noHp: '08123456789',
-      kodeBagian: '001',
-      pangkat: 'Manager',
-      jabatan: 'Kepala Divisi',
-      deskripsi: 'Bertanggung jawab atas administrasi.',
-    },
-  ]);
-
+  const [data, setData] = useState([]);
   const [formData, setFormData] = useState({
-    nrp: '',
+    nrp_pegawai: '',
     nama: '',
     email: '',
-    noHp: '',
-    kodeBagian: '',
+    nomor_hp: '',
+    kode_bagian: '',
     pangkat: '',
     jabatan: '',
     deskripsi: '',
   });
-
   const [showForm, setShowForm] = useState(false);
   const [editIndex, setEditIndex] = useState(null);
-  const [deleteIndex, setDeleteIndex] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5);
+
+  const apiUrl = 'https://arsipdigital-v2.my.id/api/admin/pegawai.php';
+
+  const getHeaderAuth = () => ({
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const response = await axios.get(apiUrl, getHeaderAuth());
+      console.log("Fetched data:", response.data.data);  // Log data fetched from API
+      if (response.data && response.data.data) {
+        setData(response.data.data);
+      } else {
+        MySwal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Gagal mengambil data pegawai',
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);  // Log any fetch error
+      MySwal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Gagal mengambil data pegawai',
+      });
+    }
+  };
+  
+  
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [name]: value,
-    });
+    }));
   };
 
-  const handleAdd = (e) => {
+  const handleAdd = async (e) => {
     e.preventDefault();
-
-    if (editIndex === null && data.some((item) => item.nrp === formData.nrp)) {
+    try {
+      let response;
+      if (editIndex === null) {
+        // Menambahkan pegawai
+        response = await axios.post(apiUrl, formData, getHeaderAuth());
+      } else {
+        const updatedData = { ...formData, id: data[editIndex].id };
+        // Memperbarui pegawai
+        response = await axios.put(apiUrl, updatedData, getHeaderAuth());
+      }
+  
+      console.log("Response after saving:", response);  // Log the full response to check data
+      MySwal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: `Data pegawai ${editIndex === null ? 'berhasil ditambahkan' : 'berhasil diperbarui'}`,
+      });
+  
+      if (response.data && response.data.data) {
+        // Jika API mengembalikan data yang baru, update state dengan data tersebut
+        setData(response.data.data);
+      } else {
+        // Jika API tidak mengembalikan data, lakukan fetch ulang
+        await fetchData();
+      }
+  
+      resetForm();
+    } catch (error) {
+      console.error("Error during save:", error);  // Log any error here
       MySwal.fire({
         icon: 'error',
-        title: 'Oops...',
-        text: 'NRP Pegawai sudah ada, gunakan NRP yang berbeda.',
-      });
-      return;
-    }
-
-    if (editIndex !== null) {
-      const updatedData = [...data];
-      updatedData[editIndex] = formData;
-      setData(updatedData);
-
-      MySwal.fire({
-        icon: 'success',
-        title: 'Berhasil!',
-        text: 'Data pegawai berhasil diperbarui!',
-      });
-
-      setEditIndex(null);
-    } else {
-      setData([...data, formData]);
-
-      MySwal.fire({
-        icon: 'success',
-        title: 'Berhasil!',
-        text: 'Data pegawai berhasil ditambahkan!',
+        title: 'Error',
+        text: 'Gagal menyimpan data pegawai',
       });
     }
-
-    setFormData({
-      nrp: '',
-      nama: '',
-      email: '',
-      noHp: '',
-      kodeBagian: '',
-      pangkat: '',
-      jabatan: '',
-      deskripsi: '',
-    });
-    setShowForm(false);
   };
+  
+  
 
-  const handleDelete = (index) => {
-    MySwal.fire({
+
+  const handleDelete = async (index) => {
+    const result = await MySwal.fire({
       title: 'Apakah Anda yakin?',
-      text: 'Data pegawai ini akan dihapus secara permanen!',
+      text: "Data yang dihapus tidak dapat dikembalikan!",
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#3085d6',
       cancelButtonColor: '#d33',
       confirmButtonText: 'Ya, hapus!',
-      cancelButtonText: 'Batal',
-    }).then((result) => {
-      if (result.isConfirmed) {
-        const updatedData = data.filter((_, i) => i !== index);
-        setData(updatedData);
-
-        MySwal.fire('Dihapus!', 'Data pegawai berhasil dihapus.', 'success');
-      }
+      cancelButtonText: 'Batal'
     });
+
+    if (result.isConfirmed) {
+      try {
+        await axios.delete(`${apiUrl}?id=${data[index].id}`, getHeaderAuth());
+        await fetchData();
+        MySwal.fire(
+          'Terhapus!',
+          'Data pegawai telah dihapus.',
+          'success'
+        );
+      } catch (error) {
+        MySwal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Gagal menghapus data pegawai',
+        });
+      }
+    }
   };
 
-  const handleEdit = (index) => {
-    setEditIndex(index);
-    setFormData(data[index]);
-    setShowForm(true);
+  const resetForm = () => {
+    setFormData({
+      nrp_pegawai: '',
+      nama: '',
+      email: '',
+      nomor_hp: '',
+      kode_bagian: '',
+      pangkat: '',
+      jabatan: '',
+      deskripsi: '',
+    });
+    setShowForm(false);
+    setEditIndex(null);
   };
 
-  const handleDownload = () => {
-    const headers = [
-      'NRP Pegawai',
-      'Nama Pegawai',
-      'Email',
-      'No HP',
-      'Kode Bagian',
-      'Pangkat',
-      'Jabatan',
-      'Deskripsi Umum',
-    ];
-    const rows = data.map((item) => [
-      item.nrp,
-      item.nama,
-      item.email,
-      item.noHp,
-      item.kodeBagian,
-      item.pangkat,
-      item.jabatan,
-      item.deskripsi,
-    ]);
-
-    const csvContent =
-      'data:text/csv;charset=utf-8,' +
-      [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'Pegawai_Report.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  // Pagination
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = data.slice(indexOfFirstItem, indexOfLastItem);
+  const pageCount = Math.ceil(data.length / itemsPerPage);
 
   return (
-    <div className="p-4 bg-light" style={{ borderRadius: '8px' }}>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>Pegawai</h2>
-        <div>
-          <button className="btn btn-outline-primary me-2" onClick={handleDownload}>
-            Download report
-          </button>
-          <button
-            className="btn btn-primary"
-            onClick={() => {
-              setShowForm(!showForm);
-              setFormData({
-                nrp: '',
-                nama: '',
-                email: '',
-                noHp: '',
-                kodeBagian: '',
-                pangkat: '',
-                jabatan: '',
-                deskripsi: '',
-              });
-              setEditIndex(null);
-            }}
+    <div className="container-fluid p-4">
+      <div className="card">
+        <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+          <h5 className="mb-0">Data Pegawai</h5>
+          <button 
+            className={`btn ${showForm ? 'btn-danger' : 'btn-light'}`}
+            onClick={() => setShowForm(!showForm)}
           >
-            {showForm ? 'Cancel' : '+ Add'}
+            {showForm ? 'Batal' : '+ Tambah Pegawai'}
           </button>
         </div>
-      </div>
+        
+        <div className="card-body">
+          {showForm && (
+            <form onSubmit={handleAdd} className="mb-4">
+              <div className="row g-3">
+                <div className="col-md-6">
+                  <input
+                    type="text"
+                    className="form-control"
+                    name="nrp_pegawai"
+                    value={formData.nrp_pegawai}
+                    onChange={handleChange}
+                    placeholder="NRP Pegawai"
+                    required
+                  />
+                </div>
+                <div className="col-md-6">
+                  <input
+                    type="text"
+                    className="form-control"
+                    name="nama"
+                    value={formData.nama}
+                    onChange={handleChange}
+                    placeholder="Nama Pegawai"
+                    required
+                  />
+                </div>
+                <div className="col-md-6">
+                  <input
+                    type="email"
+                    className="form-control"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Alamat Email"
+                    required
+                  />
+                </div>
+                <div className="col-md-6">
+                  <input
+                    type="text"
+                    className="form-control"
+                    name="nomor_hp"
+                    value={formData.nomor_hp}
+                    onChange={handleChange}
+                    placeholder="Nomor HP"
+                    required
+                  />
+                </div>
+                <div className="col-md-6">
+                  <input
+                    type="text"
+                    className="form-control"
+                    name="kode_bagian"
+                    value={formData.kode_bagian}
+                    onChange={handleChange}
+                    placeholder="Kode Bagian"
+                    required
+                  />
+                </div>
+                <div className="col-md-6">
+                  <input
+                    type="text"
+                    className="form-control"
+                    name="pangkat"
+                    value={formData.pangkat}
+                    onChange={handleChange}
+                    placeholder="Pangkat"
+                    required
+                  />
+                </div>
+                <div className="col-md-6">
+                  <input
+                    type="text"
+                    className="form-control"
+                    name="jabatan"
+                    value={formData.jabatan}
+                    onChange={handleChange}
+                    placeholder="Jabatan"
+                    required
+                  />
+                </div>
+                <div className="col-md-6">
+                  <input
+                    type="text"
+                    className="form-control"
+                    name="deskripsi"
+                    value={formData.deskripsi}
+                    onChange={handleChange}
+                    placeholder="Deskripsi"
+                  />
+                </div>
+                <div className="col-12">
+                  <button type="submit" className="btn btn-success">
+                    {editIndex !== null ? 'Perbarui' : 'Simpan'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          )}
 
-      {/* Form Add/Edit */}
-      {showForm && (
-        <form onSubmit={handleAdd} className="mb-4">
-          <div className="row">
-            <div className="col-md-3 mb-3">
-              <input
-                type="text"
-                className="form-control"
-                name="nrp"
-                placeholder="NRP Pegawai"
-                value={formData.nrp}
-                onChange={handleChange}
-                required
-                disabled={editIndex !== null}
-              />
-            </div>
-            <div className="col-md-3 mb-3">
-              <input
-                type="text"
-                className="form-control"
-                name="nama"
-                placeholder="Nama Pegawai"
-                value={formData.nama}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="col-md-3 mb-3">
-              <input
-                type="email"
-                className="form-control"
-                name="email"
-                placeholder="Email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="col-md-3 mb-3">
-              <input
-                type="text"
-                className="form-control"
-                name="noHp"
-                placeholder="No HP"
-                value={formData.noHp}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="col-md-3 mb-3">
-              <input
-                type="text"
-                className="form-control"
-                name="kodeBagian"
-                placeholder="Kode Bagian"
-                value={formData.kodeBagian}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="col-md-3 mb-3">
-              <input
-                type="text"
-                className="form-control"
-                name="pangkat"
-                placeholder="Pangkat"
-                value={formData.pangkat}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="col-md-3 mb-3">
-              <input
-                type="text"
-                className="form-control"
-                name="jabatan"
-                placeholder="Jabatan"
-                value={formData.jabatan}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="col-md-3 mb-3">
-              <input
-                type="text"
-                className="form-control"
-                name="deskripsi"
-                placeholder="Deskripsi Umum"
-                value={formData.deskripsi}
-                onChange={handleChange}
-                required
-              />
-            </div>
+          <div className="table-responsive">
+            <table className="table table-striped table-hover">
+              <thead className="table-dark">
+                <tr>
+                  <th>NRP</th>
+                  <th>Nama</th>
+                  <th>Email</th>
+                  <th>No. HP</th>
+                  <th>Bagian</th>
+                  <th>Pangkat</th>
+                  <th>Jabatan</th>
+                  <th>Deskripsi</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentItems.map((item, index) => (
+                  <tr key={item.id}>
+                    <td>{item.nrp_pegawai}</td>
+                    <td>{item.nama}</td>
+                    <td>{item.email}</td>
+                    <td>{item.nomor_hp}</td>
+                    <td>{item.kode_bagian}</td>
+                    <td>{item.pangkat}</td>
+                    <td>{item.jabatan}</td>
+                    <td>{item.deskripsi}</td>
+                    <td>
+                      <div className="btn-group" role="group">
+                        <button
+                          className="btn btn-warning btn-sm"
+                          onClick={() => {
+                            setEditIndex(index);
+                            setFormData(item);
+                            setShowForm(true);
+                          }}
+                        >
+                          Ubah
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleDelete(index)}
+                        >
+                          Hapus
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <button type="submit" className="btn btn-success">
-            {editIndex !== null ? 'Update' : 'Save'}
-          </button>
-        </form>
-      )}
 
-      {/* Table Data */}
-      <div className="table-responsive">
-        <table className="table table-striped table-hover">
-          <thead className="table-dark">
-            <tr>
-              <th>NRP Pegawai</th>
-              <th>Nama Pegawai</th>
-              <th>Email</th>
-              <th>No HP</th>
-              <th>Kode Bagian</th>
-              <th>Pangkat</th>
-              <th>Jabatan</th>
-              <th>Deskripsi Umum</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((item, index) => (
-              <tr key={index}>
-                <td>{item.nrp}</td>
-                <td>{item.nama}</td>
-                <td>{item.email}</td>
-                <td>{item.noHp}</td>
-                <td>{item.kodeBagian}</td>
-                <td>{item.pangkat}</td>
-                <td>{item.jabatan}</td>
-                <td>{item.deskripsi}</td>
-                <td>
-                  <button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(index)}>
-                    Edit
-                  </button>
+          <nav className="d-flex justify-content-center mt-3">
+            <ul className="pagination">
+              <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                <button
+                  className="page-link"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                >
+                  Sebelumnya
+                </button>
+              </li>
+              {Array.from({ length: pageCount }, (_, i) => i + 1).map(number => (
+                <li
+                  key={number}
+                  className={`page-item ${currentPage === number ? 'active' : ''}`}
+                >
                   <button
-                    className="btn btn-danger btn-sm"
-                    onClick={() => handleDelete(index)}
+                    className="page-link"
+                    onClick={() => setCurrentPage(number)}
                   >
-                    Delete
+                    {number}
                   </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </li>
+              ))}
+              <li className={`page-item ${currentPage === pageCount ? 'disabled' : ''}`}>
+                <button
+                  className="page-link"
+                  onClick={() => setCurrentPage(p => Math.min(pageCount, p + 1))}
+                >
+                  Selanjutnya
+                </button>
+              </li>
+            </ul>
+          </nav>
+        </div>
       </div>
     </div>
   );

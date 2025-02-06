@@ -1,290 +1,350 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Card, Button, Form, Table, Alert, Badge, Spinner } from 'react-bootstrap';
 import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
 
-const SuratKeluar = () => {
-  const [data, setData] = useState([
-    {
-      kode: '001',
-      tanggal: '2024-01-01',
-      nrpPegawai: '123456',
-      dikirimKepada: 'Polres Jepara',
-      softfile: { name: 'contoh.pdf', url: null },
-      jenisSurat: 'Rahasia',
-    },
-  ]);
+const MySwal = withReactContent(Swal);
 
+const getHeaderAuth = () => ({
+  Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+  'Content-Type': 'application/json',
+});
+
+const Suratkeluar = () => {
+  const [data, setData] = useState([]);
   const [formData, setFormData] = useState({
-    kode: '',
-    tanggal: '',
-    nrpPegawai: '',
-    dikirimKepada: '',
+    kode_transaksi: '',
+    tanggal_surat_keluar: '',
+    asal_surat: '',
+    nrp_pegawai: '',
     softfile: null,
-    jenisSurat: 'Biasa',
+    jenis_surat: 'Biasa',
   });
-
   const [showForm, setShowForm] = useState(false);
   const [editIndex, setEditIndex] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const storedData = localStorage.getItem('suratkeluarData');
+    if (storedData) {
+      setData(JSON.parse(storedData));
+    } else {
+      fetch('https://arsipdigital-v2.my.id/api/admin/surat_keluar.php', {
+        headers: getHeaderAuth(),
+      })
+        .then((response) => response.json())
+        .then((result) => {
+          const dataResult = Array.isArray(result) ? result : result.data || [];
+          setData(dataResult);
+          localStorage.setItem('suratkeluarData', JSON.stringify(dataResult));
+        })
+        .catch((error) => {
+          console.error('Error fetching data:', error);
+          setError('Failed to fetch data');
+        });
+    }
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFormData({
-        ...formData,
+      setFormData(prev => ({
+        ...prev,
         softfile: {
           name: file.name,
           url: URL.createObjectURL(file),
         },
-      });
+      }));
     }
   };
 
-  const handleAdd = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editIndex !== null) {
-      const updatedData = [...data];
-      updatedData[editIndex] = formData;
+    setLoading(true);
+    setError('');
+
+    const requestMethod = editIndex !== null ? 'PUT' : 'POST';
+    const url = `https://arsipdigital-v2.my.id/api/admin/surat_keluar.php${
+      editIndex !== null ? `/${data[editIndex].id}` : ''
+    }`;
+
+    try {
+      const response = await fetch(url, {
+        method: requestMethod,
+        body: JSON.stringify(formData),
+        headers: getHeaderAuth(),
+      });
+
+      const result = await response.json();
+
+      let updatedData;
+      if (editIndex !== null) {
+        updatedData = data.map((item, idx) => 
+          idx === editIndex ? { ...formData, id: item.id } : item
+        );
+        setEditIndex(null);
+      } else {
+        updatedData = [...data, { ...formData, id: result.id }];
+      }
+
       setData(updatedData);
-      setEditIndex(null);
+      localStorage.setItem('suratkeluarData', JSON.stringify(updatedData));
+      resetForm();
 
-      Swal.fire('Berhasil!', 'Data berhasil diperbarui!', 'success');
-    } else {
-      setData([...data, formData]);
-
-      Swal.fire('Berhasil!', 'Data berhasil ditambahkan!', 'success');
+      MySwal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: editIndex !== null ? 'Data berhasil diperbarui!' : 'Data berhasil ditambahkan!',
+      });
+    } catch (error) {
+      setError('Failed to save data');
+      MySwal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to save data',
+      });
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const resetForm = () => {
     setFormData({
-      kode: '',
-      tanggal: '',
-      nrpPegawai: '',
-      dikirimKepada: '',
+      kode_transaksi: '',
+      tanggal_surat_keluar: '',
+      asal_surat: '',
+      nrp_pegawai: '',
       softfile: null,
-      jenisSurat: 'Biasa',
+      jenis_surat: 'Biasa',
     });
     setShowForm(false);
-  };
-
-  const handleDelete = (index) => {
-    Swal.fire({
-      title: 'Apakah Anda yakin?',
-      text: 'Data ini akan dihapus!',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Ya, hapus!',
-      cancelButtonText: 'Batal',
-    }).then((result) => {
-      if (result.isConfirmed) {
-        const updatedData = data.filter((_, i) => i !== index);
-        setData(updatedData);
-        Swal.fire('Terhapus!', 'Data berhasil dihapus.', 'success');
-      }
-    });
-  };
-
-  const handleEdit = (index) => {
-    setEditIndex(index);
-    setFormData(data[index]);
-    setShowForm(true);
+    setEditIndex(null);
   };
 
   const handleDownload = () => {
-    const headers = [
-      'Kode Transaksi',
-      'Tanggal',
-      'NRP Pegawai',
-      'Surat Dikirim Kepada',
-      'Softfile',
-      'Jenis Surat',
-    ];
-    const rows = data.map((item) => [
-      item.kode,
-      item.tanggal,
-      item.nrpPegawai,
-      item.dikirimKepada,
+    const headers = ['ID', 'Kode Transaksi', 'Tanggal', 'Dikirim Kepada', 'NRP Pegawai', 'Softfile', 'Jenis Surat'];
+    const rows = data.map(item => [
+      item.id,
+      item.kode_transaksi,
+      item.tanggal_surat_keluar,
+      item.asal_surat,
+      item.nrp_pegawai,
       item.softfile?.name || '',
-      item.jenisSurat,
+      item.jenis_surat,
     ]);
 
-    const csvContent =
-      'data:text/csv;charset=utf-8,' +
-      [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+    const csvContent = 'data:text/csv;charset=utf-8,' + 
+      [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
 
-    const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'Surat_Keluar_Report.csv');
+    link.href = encodeURI(csvContent);
+    link.download = 'Surat_Keluar_Report.csv';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
 
-    Swal.fire('Berhasil!', 'Laporan berhasil didownload.', 'success');
+  const getBadgeVariant = (jenisSurat) => {
+    switch (jenisSurat) {
+      case 'Penting':
+        return 'warning';
+      case 'Rahasia':
+        return 'danger';
+      default:
+        return 'secondary';
+    }
   };
 
   return (
-    <div className="p-4 bg-light" style={{ borderRadius: '8px' }}>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>Surat Keluar</h2>
-        <div>
-          <button
-            className="btn btn-outline-primary me-2"
-            onClick={handleDownload}
-          >
-            Download report
-          </button>
-          <button
-            className="btn btn-primary"
-            onClick={() => {
-              setShowForm(!showForm);
-              setFormData({
-                kode: '',
-                tanggal: '',
-                nrpPegawai: '',
-                dikirimKepada: '',
-                softfile: null,
-                jenisSurat: 'Biasa',
-              });
-              setEditIndex(null);
-            }}
-          >
-            {showForm ? 'Cancel' : '+ Add'}
-          </button>
-        </div>
-      </div>
-
-      {/* Form Tambah/Edit */}
-      {showForm && (
-        <form onSubmit={handleAdd} className="mb-4">
-          <div className="row">
-            <div className="col-md-2 mb-3">
-              <input
-                type="text"
-                className="form-control"
-                name="kode"
-                placeholder="Kode Transaksi"
-                value={formData.kode}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="col-md-2 mb-3">
-              <input
-                type="date"
-                className="form-control"
-                name="tanggal"
-                value={formData.tanggal}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="col-md-2 mb-3">
-              <input
-                type="text"
-                className="form-control"
-                name="nrpPegawai"
-                placeholder="NRP Pegawai"
-                value={formData.nrpPegawai}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="col-md-2 mb-3">
-              <input
-                type="text"
-                className="form-control"
-                name="dikirimKepada"
-                placeholder="Surat Dikirim Kepada"
-                value={formData.dikirimKepada}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="col-md-2 mb-3">
-              <input
-                type="file"
-                className="form-control"
-                onChange={handleFileChange}
-                required={!editIndex} // File wajib diunggah hanya untuk tambah data
-              />
-            </div>
-            <div className="col-md-2 mb-3">
-              <select
-                className="form-control"
-                name="jenisSurat"
-                value={formData.jenisSurat}
-                onChange={handleChange}
+    <div className="container py-4">
+      <Card>
+        <Card.Header className="bg-white">
+          <div className="d-flex justify-content-between align-items-center">
+            <h4 className="mb-0">Surat Keluar</h4>
+            <div>
+              <Button 
+                variant="outline-primary" 
+                onClick={handleDownload}
+                className="me-2"
               >
-                <option value="Biasa">Biasa</option>
-                <option value="Penting">Penting</option>
-                <option value="Rahasia">Rahasia</option>
-              </select>
+                <i className="bi bi-download me-2"></i>
+                Download Report
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => setShowForm(!showForm)}
+              >
+                <i className={`bi ${showForm ? 'bi-x' : 'bi-plus'} me-2`}></i>
+                {showForm ? 'Cancel' : 'Add New'}
+              </Button>
             </div>
           </div>
-          <button type="submit" className="btn btn-success">
-            {editIndex !== null ? 'Update' : 'Save'}
-          </button>
-        </form>
-      )}
+        </Card.Header>
+        <Card.Body>
+          {error && (
+            <Alert variant="danger" className="mb-4">
+              {error}
+            </Alert>
+          )}
 
-      {/* Tabel Data */}
-      <div className="table-responsive">
-        <table className="table table-striped">
-          <thead className="table-dark">
-            <tr>
-              <th>Kode Transaksi</th>
-              <th>Tanggal</th>
-              <th>NRP Pegawai</th>
-              <th>Surat Dikirim Kepada</th>
-              <th>Softfile</th>
-              <th>Jenis Surat</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((item, index) => (
-              <tr key={index}>
-                <td>{item.kode}</td>
-                <td>{item.tanggal}</td>
-                <td>{item.nrpPegawai}</td>
-                <td>{item.dikirimKepada}</td>
-                <td>
-                  {item.softfile?.url ? (
-                    <a href={item.softfile.url} target="_blank" rel="noreferrer">
-                      View
-                    </a>
+          {showForm && (
+            <Form onSubmit={handleSubmit} className="mb-4">
+              <div className="row g-3">
+                <div className="col-md-4">
+                  <Form.Group>
+                    <Form.Label>Kode Transaksi</Form.Label>
+                    <Form.Control
+                      name="kode_transaksi"
+                      value={formData.kode_transaksi}
+                      onChange={handleChange}
+                      required
+                      placeholder="Enter transaction code"
+                    />
+                  </Form.Group>
+                </div>
+                <div className="col-md-4">
+                  <Form.Group>
+                    <Form.Label>Tanggal Surat Keluar</Form.Label>
+                    <Form.Control
+                      type="date"
+                      name="tanggal_surat_keluar"
+                      value={formData.tanggal_surat_keluar}
+                      onChange={handleChange}
+                      required
+                    />
+                  </Form.Group>
+                </div>
+                <div className="col-md-4">
+                  <Form.Group>
+                    <Form.Label>Dikirim Kepada</Form.Label>
+                    <Form.Control
+                      name="asal_surat"
+                      value={formData.asal_surat}
+                      onChange={handleChange}
+                      required
+                      placeholder="Enter recipient"
+                    />
+                  </Form.Group>
+                </div>
+                <div className="col-md-4">
+                  <Form.Group>
+                    <Form.Label>NRP Pegawai</Form.Label>
+                    <Form.Control
+                      name="nrp_pegawai"
+                      value={formData.nrp_pegawai}
+                      onChange={handleChange}
+                      required
+                      placeholder="Enter employee NRP"
+                    />
+                  </Form.Group>
+                </div>
+                <div className="col-md-4">
+                  <Form.Group>
+                    <Form.Label>Softfile</Form.Label>
+                    <Form.Control
+                      type="file"
+                      onChange={handleFileChange}
+                      required={!editIndex}
+                    />
+                  </Form.Group>
+                </div>
+                <div className="col-md-4">
+                  <Form.Group>
+                    <Form.Label>Jenis Surat</Form.Label>
+                    <Form.Select
+                      name="jenis_surat"
+                      value={formData.jenis_surat}
+                      onChange={handleChange}
+                    >
+                      <option value="Biasa">Biasa</option>
+                      <option value="Penting">Penting</option>
+                      <option value="Rahasia">Rahasia</option>
+                    </Form.Select>
+                  </Form.Group>
+                </div>
+              </div>
+              <div className="mt-4">
+                <Button 
+                  type="submit" 
+                  disabled={loading}
+                  className="d-flex align-items-center"
+                >
+                  {loading ? (
+                    <>
+                      <Spinner
+                        as="span"
+                        animation="border"
+                        size="sm"
+                        role="status"
+                        className="me-2"
+                      />
+                      Saving...
+                    </>
                   ) : (
-                    'No File'
+                    <>
+                      <i className="bi bi-save me-2"></i>
+                      {editIndex !== null ? 'Update' : 'Save'}
+                    </>
                   )}
-                </td>
-                <td>{item.jenisSurat}</td>
-                <td>
-                  <button
-                    className="btn btn-warning btn-sm me-2"
-                    onClick={() => handleEdit(index)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="btn btn-danger btn-sm"
-                    onClick={() => handleDelete(index)}
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="text-end">Total: {data.length} dan hanya 1 halaman ditampilkan</p>
+                </Button>
+              </div>
+            </Form>
+          )}
+
+          <div className="table-responsive">
+            <Table hover bordered className="align-middle">
+              <thead className="bg-light">
+                <tr>
+                  <th>No</th>
+                  <th>Kode Transaksi</th>
+                  <th>Tanggal Surat Keluar</th>
+                  <th>Dikirim Kepada</th>
+                  <th>NRP Pegawai</th>
+                  <th>Jenis Surat</th>
+                  <th>Softfile</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((item, index) => (
+                  <tr key={item.id}>
+                    <td>{index + 1}</td>
+                    <td>{item.kode_transaksi}</td>
+                    <td>{item.tanggal_surat_keluar}</td>
+                    <td>{item.asal_surat}</td>
+                    <td>{item.nrp_pegawai}</td>
+                    <td>
+                      <Badge bg={getBadgeVariant(item.jenis_surat)}>
+                        {item.jenis_surat}
+                      </Badge>
+                    </td>
+                    <td>
+                      {item.softfile && (
+                        <a
+                          href={item.softfile.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-decoration-none"
+                        >
+                          <i className="bi bi-file-earmark me-2"></i>
+                          {item.softfile.name}
+                        </a>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        </Card.Body>
+      </Card>
     </div>
   );
 };
 
-export default SuratKeluar;
+export default Suratkeluar;
