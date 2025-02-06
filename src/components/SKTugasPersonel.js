@@ -19,7 +19,12 @@ const SKTugasPersonel = () => {
       if (storedData) {
         setData(JSON.parse(storedData));
       } else {
-        const response = await fetch('https://arsipdigital-v2.my.id/api/admin/suratsktugas.php');
+        const response = await fetch('https://arsipdigital-v2.my.id/api/admin/suratsktugas.php', {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          }
+        });
         if (!response.ok) {
           throw new Error('Network response was not ok');
         }

@@ -6,7 +6,7 @@ import withReactContent from 'sweetalert2-react-content';
 const MySwal = withReactContent(Swal);
 
 const getHeaderAuth = () => ({
-  Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+  'Authorization': `Bearer ${localStorage.getItem('token')}`,
   'Content-Type': 'application/json',
 });
 
@@ -27,10 +27,24 @@ const SuratMasuk = () => {
 
   useEffect(() => {
     const storedData = localStorage.getItem('suratMasukData');
-    if (storedData) {
-      setData(JSON.parse(storedData));
-    } else {
-      fetch('https://arsipdigital-v2.my.id/api/admin/surat_masuk.php', {
+    // if (storedData) {
+    //   setData(JSON.parse(storedData));
+    // } else {
+    //   fetch('https://arsipdigital-v2.my.id/api/admin/surat_masuk.php', {
+    //     headers: getHeaderAuth(),
+    //   })
+    //     .then((response) => response.json())
+    //     .then((result) => {
+    //       const dataResult = result.data || [];
+    //       setData(dataResult);
+    //       localStorage.setItem('suratMasukData', JSON.stringify(dataResult));
+    //     })
+    //     .catch((error) => {
+    //       console.error('Error fetching data:', error);
+    //       setError('Failed to fetch data');
+    //     });
+    // }
+    fetch('https://arsipdigital-v2.my.id/api/admin/surat_masuk.php', {
         headers: getHeaderAuth(),
       })
         .then((response) => response.json())
@@ -43,7 +57,6 @@ const SuratMasuk = () => {
           console.error('Error fetching data:', error);
           setError('Failed to fetch data');
         });
-    }
   }, []);
 
   const handleChange = (e) => {
@@ -320,13 +333,13 @@ const SuratMasuk = () => {
                     <td>
                       {item.softfile && (
                         <a
-                          href={item.softfile.url}
+                          href={item.softfile}
                           target="_blank"
                           rel="noreferrer"
                           className="text-decoration-none"
                         >
-                          <i className="bi bi-file-earmark me-2"></i>
-                          {item.softfile.name}
+                          <i className="bi bi-file-earmark me-2">Download</i>
+                          {/* {item.softfile} */}
                         </a>
                       )}
                     </td>
